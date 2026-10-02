@@ -1,9 +1,93 @@
 @ExpenseHub_Api_HostAddress = http://localhost:5245
+# Defina em um http-client.private.env.json (nao versionado): adminPassword, userPassword, token, expenseId, userId
+@adminEmail = admin@expensehub.local
 
 GET {{ExpenseHub_Api_HostAddress}}/health
 Accept: application/json
 
 ###
 
-# Os endpoints do checkpoint estão definidos em docs/REQUISITOS.md.
-# Implemente e adicione aqui as requisições usadas para validar cada issue.
+# Registro publico (nao aceita roles)
+POST {{ExpenseHub_Api_HostAddress}}/register
+Content-Type: application/json
+
+{ "email": "ana@example.com", "password": "{{userPassword}}" }
+
+###
+
+# Login: o campo access_token da resposta vai em "Authorization: Bearer ..."
+POST {{ExpenseHub_Api_HostAddress}}/login
+Content-Type: application/json
+
+{ "email": "{{adminEmail}}", "password": "{{adminPassword}}" }
+
+###
+
+# Admin: listar usuarios
+GET {{ExpenseHub_Api_HostAddress}}/api/admin/users
+Authorization: Bearer {{token}}
+
+###
+
+# Admin: substituir as roles de um usuario (o usuario precisa autenticar de novo)
+PUT {{ExpenseHub_Api_HostAddress}}/api/admin/users/{{userId}}/roles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "roles": ["Employee"] }
+
+###
+
+# Employee: criar rascunho
+POST {{ExpenseHub_Api_HostAddress}}/api/expenses
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "description": "Taxi do aeroporto ate o cliente", "amount": 150.75, "expenseDate": "2026-09-29", "categoryId": 4 }
+
+###
+
+# Employee: editar rascunho proprio
+PUT {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "description": "Taxi e estacionamento do cliente", "amount": 200, "expenseDate": "2026-09-29" }
+
+###
+
+GET {{ExpenseHub_Api_HostAddress}}/api/expenses
+Authorization: Bearer {{token}}
+
+###
+
+GET {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}
+Authorization: Bearer {{token}}
+
+###
+
+POST {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}/submit
+Authorization: Bearer {{token}}
+
+###
+
+POST {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}/approve
+Authorization: Bearer {{token}}
+
+###
+
+POST {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}/reject
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{ "reason": "Comprovante ausente na solicitacao" }
+
+###
+
+POST {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}/pay
+Authorization: Bearer {{token}}
+
+###
+
+GET {{ExpenseHub_Api_HostAddress}}/api/expenses/{{expenseId}}/history
+Authorization: Bearer {{token}}
