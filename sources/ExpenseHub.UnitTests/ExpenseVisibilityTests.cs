@@ -10,8 +10,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for expense visibility behavior.</summary>
 [TestClass]
-internal sealed class ExpenseVisibilityTests
+public sealed class ExpenseVisibilityTests
 {
     private readonly ExpenseWorld _world = new();
     private ExpenseResponse _draftOfEmp1 = null!;
@@ -20,6 +21,7 @@ internal sealed class ExpenseVisibilityTests
     private ExpenseResponse _rejectedOfEmp2 = null!;
     private ExpenseResponse _paidOfEmp3 = null!;
 
+    /// <summary>Seeds the expenses used by every test.</summary>
     [TestInitialize]
     public async Task SeedExpenses()
     {
@@ -33,6 +35,7 @@ internal sealed class ExpenseVisibilityTests
         _paidOfEmp3 = await _world.PaidAsync(TestData.Employee("emp-3"), approver, finance);
     }
 
+    /// <summary>Employee: lists only their own expenses.</summary>
     [TestMethod]
     public async Task Employee_ListsOnlyTheirOwnExpenses()
     {
@@ -41,6 +44,7 @@ internal sealed class ExpenseVisibilityTests
         AssertSameExpenses(list, _draftOfEmp1, _submittedOfEmp1);
     }
 
+    /// <summary>Employee: without expenses sees an empty list.</summary>
     [TestMethod]
     public async Task Employee_WithoutExpensesSeesAnEmptyList()
     {
@@ -49,6 +53,7 @@ internal sealed class ExpenseVisibilityTests
         Assert.IsEmpty(list);
     }
 
+    /// <summary>Approver: lists only submitted expenses.</summary>
     [TestMethod]
     public async Task Approver_ListsOnlySubmittedExpenses()
     {
@@ -57,6 +62,7 @@ internal sealed class ExpenseVisibilityTests
         AssertSameExpenses(list, _submittedOfEmp1);
     }
 
+    /// <summary>Finance: lists only approved and paid expenses.</summary>
     [TestMethod]
     public async Task Finance_ListsOnlyApprovedAndPaidExpenses()
     {
@@ -65,6 +71,7 @@ internal sealed class ExpenseVisibilityTests
         AssertSameExpenses(list, _approvedOfEmp2, _paidOfEmp3);
     }
 
+    /// <summary>Auditor: lists everything.</summary>
     [TestMethod]
     public async Task Auditor_ListsEverything()
     {
@@ -73,6 +80,7 @@ internal sealed class ExpenseVisibilityTests
         AssertSameExpenses(list, _draftOfEmp1, _submittedOfEmp1, _approvedOfEmp2, _rejectedOfEmp2, _paidOfEmp3);
     }
 
+    /// <summary>Accumulated roles: list the union of their scopes.</summary>
     [TestMethod]
     public async Task AccumulatedRoles_ListTheUnionOfTheirScopes()
     {
@@ -83,6 +91,7 @@ internal sealed class ExpenseVisibilityTests
         AssertSameExpenses(list, _draftOfEmp1, _submittedOfEmp1, _approvedOfEmp2, _paidOfEmp3);
     }
 
+    /// <summary>Employee: cannot read another employees expense.</summary>
     [TestMethod]
     public async Task Employee_CannotReadAnotherEmployeesExpense()
     {
@@ -93,6 +102,7 @@ internal sealed class ExpenseVisibilityTests
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.GetHistoryAsync(other, _draftOfEmp1.Id, CancellationToken.None));
     }
 
+    /// <summary>Employee: reads their own expense in any state.</summary>
     [TestMethod]
     public async Task Employee_ReadsTheirOwnExpenseInAnyState()
     {
@@ -105,6 +115,7 @@ internal sealed class ExpenseVisibilityTests
         Assert.AreEqual(ExpenseStatus.Rejected, rejected.Status);
     }
 
+    /// <summary>Approver: cannot read drafts approved rejected or paid expenses.</summary>
     [TestMethod]
     public async Task Approver_CannotReadDraftsApprovedRejectedOrPaidExpenses()
     {
@@ -119,6 +130,7 @@ internal sealed class ExpenseVisibilityTests
         Assert.AreEqual(_submittedOfEmp1.Id, visible.Id);
     }
 
+    /// <summary>Finance: cannot read drafts submitted or rejected expenses.</summary>
     [TestMethod]
     public async Task Finance_CannotReadDraftsSubmittedOrRejectedExpenses()
     {
@@ -134,6 +146,7 @@ internal sealed class ExpenseVisibilityTests
         Assert.AreEqual(ExpenseStatus.Paid, paid.Status);
     }
 
+    /// <summary>Auditor: reads any expense and its history.</summary>
     [TestMethod]
     public async Task Auditor_ReadsAnyExpenseAndItsHistory()
     {
@@ -146,6 +159,7 @@ internal sealed class ExpenseVisibilityTests
         Assert.HasCount(4, history);
     }
 
+    /// <summary>Get: is not found for unknown ids.</summary>
     [TestMethod]
     public async Task Get_IsNotFoundForUnknownIds()
     {
@@ -153,6 +167,7 @@ internal sealed class ExpenseVisibilityTests
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.GetHistoryAsync(TestData.Auditor(), Guid.NewGuid(), CancellationToken.None));
     }
 
+    /// <summary>History: follows the visibility of the expense.</summary>
     [TestMethod]
     public async Task History_FollowsTheVisibilityOfTheExpense()
     {
@@ -168,6 +183,7 @@ internal sealed class ExpenseVisibilityTests
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.GetHistoryAsync(finance, _submittedOfEmp1.Id, CancellationToken.None));
     }
 
+    /// <summary>History: lists the entries of the full workflow in order.</summary>
     [TestMethod]
     public async Task History_ListsTheEntriesOfTheFullWorkflowInOrder()
     {

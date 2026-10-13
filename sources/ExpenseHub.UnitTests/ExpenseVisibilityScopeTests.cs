@@ -10,10 +10,11 @@ namespace ExpenseHub.UnitTests;
 
 /// <summary>Checks the query scopes directly, as they are the only thing that filters data before materialization.</summary>
 [TestClass]
-internal sealed class ExpenseVisibilityScopeTests
+public sealed class ExpenseVisibilityScopeTests
 {
     private readonly List<Expense> _expenses = [];
 
+    /// <summary>Initializes a new instance of the <see cref="ExpenseVisibilityScopeTests"/> class.</summary>
     public ExpenseVisibilityScopeTests()
     {
         foreach (ExpenseStatus status in Enum.GetValues<ExpenseStatus>())
@@ -23,6 +24,7 @@ internal sealed class ExpenseVisibilityScopeTests
         }
     }
 
+    /// <summary>For reading: employee: matches only owned expenses in any state.</summary>
     [TestMethod]
     public void ForReading_Employee_MatchesOnlyOwnedExpensesInAnyState()
     {
@@ -32,6 +34,7 @@ internal sealed class ExpenseVisibilityScopeTests
         Assert.IsTrue(visible.All(expense => expense.OwnerId == "emp-1"));
     }
 
+    /// <summary>For reading: approver: matches submitted only.</summary>
     [TestMethod]
     public void ForReading_Approver_MatchesSubmittedOnly()
     {
@@ -41,6 +44,7 @@ internal sealed class ExpenseVisibilityScopeTests
         Assert.IsTrue(visible.All(expense => expense.Status == ExpenseStatus.Submitted));
     }
 
+    /// <summary>For reading: finance: matches approved and paid only.</summary>
     [TestMethod]
     public void ForReading_Finance_MatchesApprovedAndPaidOnly()
     {
@@ -50,6 +54,7 @@ internal sealed class ExpenseVisibilityScopeTests
         Assert.IsTrue(visible.All(expense => expense.Status is ExpenseStatus.Approved or ExpenseStatus.Paid));
     }
 
+    /// <summary>For reading: auditor: matches everything.</summary>
     [TestMethod]
     public void ForReading_Auditor_MatchesEverything()
     {
@@ -58,6 +63,7 @@ internal sealed class ExpenseVisibilityScopeTests
         Assert.HasCount(_expenses.Count, visible);
     }
 
+    /// <summary>For reading: admin or no roles: matches nothing.</summary>
     [TestMethod]
     public void ForReading_AdminOrNoRoles_MatchesNothing()
     {
@@ -65,6 +71,7 @@ internal sealed class ExpenseVisibilityScopeTests
         Assert.IsEmpty(_expenses.AsQueryable().Where(ExpenseVisibility.ForReading(TestData.User("nobody-1"))).ToList());
     }
 
+    /// <summary>For transition: hides drafts of other users only.</summary>
     [TestMethod]
     public void ForTransition_HidesDraftsOfOtherUsersOnly()
     {

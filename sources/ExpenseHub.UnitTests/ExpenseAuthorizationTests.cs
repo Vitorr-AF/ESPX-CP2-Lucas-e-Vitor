@@ -8,11 +8,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for expense authorization behavior.</summary>
 [TestClass]
-internal sealed class ExpenseAuthorizationTests
+public sealed class ExpenseAuthorizationTests
 {
     private readonly ExpenseWorld _world = new();
 
+    /// <summary>Create: requires the employee role.</summary>
     [TestMethod]
     public async Task Create_RequiresTheEmployeeRole()
     {
@@ -25,6 +27,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.AreEqual(0, _world.Repository.SaveCalls);
     }
 
+    /// <summary>Update: and submit: require the employee role.</summary>
     [TestMethod]
     public async Task Update_AndSubmit_RequireTheEmployeeRole()
     {
@@ -39,6 +42,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.AreEqual(ExpenseStatus.Draft, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Approve: and reject: require the approver role.</summary>
     [TestMethod]
     public async Task Approve_AndReject_RequireTheApproverRole()
     {
@@ -53,6 +57,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.AreEqual(ExpenseStatus.Submitted, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Pay: requires the finance role.</summary>
     [TestMethod]
     public async Task Pay_RequiresTheFinanceRole()
     {
@@ -67,6 +72,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.IsEmpty(_world.Repository.Payments);
     }
 
+    /// <summary>Auditor: can only read.</summary>
     [TestMethod]
     public async Task Auditor_CanOnlyRead()
     {
@@ -84,6 +90,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.AreEqual(savesBefore, _world.Repository.SaveCalls);
     }
 
+    /// <summary>Admin: alone has no functional access.</summary>
     [TestMethod]
     public async Task Admin_AloneHasNoFunctionalAccess()
     {
@@ -95,6 +102,7 @@ internal sealed class ExpenseAuthorizationTests
         await Assert.ThrowsExactlyAsync<ForbiddenException>(() => _world.Service.GetHistoryAsync(admin, draft.Id, CancellationToken.None));
     }
 
+    /// <summary>User without roles: is forbidden everywhere.</summary>
     [TestMethod]
     public async Task UserWithoutRoles_IsForbiddenEverywhere()
     {
@@ -107,6 +115,7 @@ internal sealed class ExpenseAuthorizationTests
         await Assert.ThrowsExactlyAsync<ForbiddenException>(() => _world.Service.PayAsync(nobody, draft.Id, CancellationToken.None));
     }
 
+    /// <summary>Accumulated roles: grant the union of permissions but never self approval or self payment.</summary>
     [TestMethod]
     public async Task AccumulatedRoles_GrantTheUnionOfPermissionsButNeverSelfApprovalOrSelfPayment()
     {
@@ -122,6 +131,7 @@ internal sealed class ExpenseAuthorizationTests
         Assert.AreEqual(ExpenseStatus.Paid, paid.Status);
     }
 
+    /// <summary>Owner who is also approver: cannot pay their own approved expense.</summary>
     [TestMethod]
     public async Task OwnerWhoIsAlsoApprover_CannotPayTheirOwnApprovedExpense()
     {
@@ -132,6 +142,7 @@ internal sealed class ExpenseAuthorizationTests
         await Assert.ThrowsExactlyAsync<ForbiddenException>(() => _world.Service.PayAsync(everything, own.Id, CancellationToken.None));
     }
 
+    /// <summary>Create: never trusts the owner sent by the client.</summary>
     [TestMethod]
     public async Task Create_NeverTrustsTheOwnerSentByTheClient()
     {

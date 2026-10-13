@@ -91,3 +91,77 @@ Entregue:
 - documentação atualizada.
 
 O projeto deve compilar sem erros e ser entregue sem warnings para receber a pontuação integral de Qualidade de Código.
+
+---
+
+## Implementação (ExpenseHub)
+
+API ASP.NET Core (.NET 10) com Identity, autenticação bearer, EF Core + SQLite e testes unitários em MSTest.
+
+### Estrutura
+
+```text
+sources/ExpenseHub.Api/
+├── Domain/           # Expense (máquina de estados), histórico, pagamento, exceções, roles
+├── Application/      # Serviços (regras de role/ownership/estado), DTOs, portas, escopos de leitura
+├── Infrastructure/   # EF Core (DbContext, repositório), Identity, seed
+└── Endpoints/        # Minimal APIs, policies, tratamento de erros (ProblemDetails)
+sources/ExpenseHub.UnitTests/   # Testes unitários sem banco, rede ou serviço externo
+```
+
+Decisões principais:
+
+- A policy de cada rota só verifica **role**; **ownership e estado** são validados na camada de serviço.
+- A visibilidade (`ExpenseVisibility`) é uma `Expression` aplicada na consulta, antes de materializar dados. Recurso fora do escopo retorna `404`.
+- Cada transição altera o `Expense`, adiciona o histórico (e o `PaymentRecord`, no pagamento) e faz um único `SaveChanges`: atômico.
+- `Expense.Version` é um token de concorrência; corrida entre duas transições resulta em `409`.
+- Repetir uma transição retorna `409` e não duplica histórico.
+
+### Banco de dados
+
+- Provider: **SQLite** (`Microsoft.EntityFrameworkCore.Sqlite`).
+- Connection string: `ConnectionStrings:Default` em `appsettings.json` (`Data Source=expensehub.db`, arquivo local ignorado pelo Git).
+- Criação: o schema é criado automaticamente na inicialização (`Database.EnsureCreated`), junto com roles e categorias. Para recriar do zero, apague `expensehub.db`.
+
+### Como executar
+
+A senha do Admin inicial **não** está no código. Configure com User Secrets (ou variável de ambiente):
+
+```shell
+dotnet user-secrets set "Seed:AdminPassword" "<senha-forte>" --project ./sources/ExpenseHub.Api/ExpenseHub.Api.csproj
+# opcional: dotnet user-secrets set "Seed:AdminEmail" "outro@email"   (padrão: admin@expensehub.local)
+# alternativa: export Seed__AdminPassword="<senha-forte>"
+
+dotnet restore ./sources/ExpenseHub.slnx
+dotnet build ./sources/ExpenseHub.slnx
+dotnet test ./sources/ExpenseHub.slnx
+dotnet run --project ./sources/ExpenseHub.Api/ExpenseHub.Api.csproj
+```
+
+Sem `Seed:AdminPassword`, a aplicação inicia, cria as roles e registra um aviso, mas não cria o Admin. O seed é idempotente: cria só o Admin e as cinco roles.
+A senha precisa ter ao menos 8 caracteres, com maiúscula, minúscula, dígito e símbolo (regras padrão do Identity).
+
+Requisições de exemplo para todos os endpoints estão em `sources/ExpenseHub.Api/ExpenseHub.Api.http`.
+
+### Autenticação
+
+`POST /login` devolve um token bearer (`access_token`). Envie `Authorization: Bearer <token>`. O token carrega as roles do momento do login, então **após alterar roles o usuário deve autenticar novamente**.
+
+### Fluxo de ponta a ponta
+
+1. Admin faz login e atribui roles aos usuários registrados com `PUT /api/admin/users/{id}/roles`.
+2. Employee cria, edita e envia (`submit`) o reembolso.
+3. Approver (outra pessoa) aprova ou reprova com justificativa.
+4. Finance (outra pessoa) registra o pagamento.
+5. Todos os envolvidos e Auditor consultam `GET /api/expenses/{id}/history` conforme visibilidade.
+
+### Contrato JSON
+
+- Despesa: `description`, `amount`, `expenseDate` (`yyyy-MM-dd`), `categoryId` (opcional; seed: 1 Travel, 2 Meals, 3 Lodging, 4 Transport, 5 Other).
+- Reprovação: `reason`. Roles: `{ "roles": ["Employee", ...] }` (substitui o conjunto).
+- Erros: `ProblemDetails` com `400`, `401`, `403`, `404` ou `409`.
+
+### Limitações conhecidas
+
+- Não há migrations versionadas: usa `EnsureCreated`. Para migrations, rode `dotnet ef migrations add Initial` e troque por `MigrateAsync`.
+- Tokens já emitidos mantêm as roles antigas até expirarem ou até novo login.

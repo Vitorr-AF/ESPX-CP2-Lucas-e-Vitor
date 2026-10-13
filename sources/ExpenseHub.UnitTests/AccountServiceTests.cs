@@ -7,8 +7,9 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for account service behavior.</summary>
 [TestClass]
-internal sealed class AccountServiceTests
+public sealed class AccountServiceTests
 {
     private const string ValidCredential = "Abcd1234";
     private const string WrongCredential = "Wrong1234";
@@ -17,11 +18,13 @@ internal sealed class AccountServiceTests
     private readonly FakeIdentityGateway _identity = new();
     private readonly AccountService _accounts;
 
+    /// <summary>Initializes a new instance of the <see cref="AccountServiceTests"/> class.</summary>
     public AccountServiceTests()
     {
         _accounts = new AccountService(_identity);
     }
 
+    /// <summary>Register: creates a user without roles.</summary>
     [TestMethod]
     public async Task Register_CreatesAUserWithoutRoles()
     {
@@ -32,6 +35,7 @@ internal sealed class AccountServiceTests
         Assert.IsEmpty(_identity.RolesOf(user.Id));
     }
 
+    /// <summary>Register: trims the email.</summary>
     [TestMethod]
     public async Task Register_TrimsTheEmail()
     {
@@ -40,6 +44,7 @@ internal sealed class AccountServiceTests
         Assert.AreEqual("ana@example.com", user.Email);
     }
 
+    /// <summary>Register: rejects invalid input.</summary>
     [TestMethod]
     public async Task Register_RejectsInvalidInput()
     {
@@ -49,6 +54,7 @@ internal sealed class AccountServiceTests
         await Assert.ThrowsExactlyAsync<ValidationFailedException>(() => _accounts.RegisterAsync(new RegisterRequest { Email = "ana@example.com", Password = ShortCredential }));
     }
 
+    /// <summary>Register: rejects a duplicated email with conflict.</summary>
     [TestMethod]
     public async Task Register_RejectsADuplicatedEmailWithConflict()
     {
@@ -58,6 +64,7 @@ internal sealed class AccountServiceTests
             () => _accounts.RegisterAsync(new RegisterRequest { Email = "ANA@example.com", Password = ValidCredential }));
     }
 
+    /// <summary>Login: returns the user with its roles.</summary>
     [TestMethod]
     public async Task Login_ReturnsTheUserWithItsRoles()
     {
@@ -70,6 +77,7 @@ internal sealed class AccountServiceTests
         CollectionAssert.AreEquivalent(new[] { AppRoles.Employee, AppRoles.Approver }, user.Roles.ToArray());
     }
 
+    /// <summary>Login: with a wrong secret is unauthorized.</summary>
     [TestMethod]
     public async Task Login_WithAWrongSecretIsUnauthorized()
     {
@@ -79,6 +87,7 @@ internal sealed class AccountServiceTests
             () => _accounts.LoginAsync(new LoginRequest { Email = "ana@example.com", Password = WrongCredential }));
     }
 
+    /// <summary>Login: with an unknown user is unauthorized.</summary>
     [TestMethod]
     public async Task Login_WithAnUnknownUserIsUnauthorized()
     {
@@ -86,6 +95,7 @@ internal sealed class AccountServiceTests
             () => _accounts.LoginAsync(new LoginRequest { Email = "ghost@example.com", Password = ValidCredential }));
     }
 
+    /// <summary>Login: with missing fields is a bad request.</summary>
     [TestMethod]
     public async Task Login_WithMissingFieldsIsABadRequest()
     {

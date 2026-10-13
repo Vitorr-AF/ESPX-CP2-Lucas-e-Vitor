@@ -5,12 +5,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for expense domain behavior.</summary>
 [TestClass]
-internal sealed class ExpenseDomainTests
+public sealed class ExpenseDomainTests
 {
     private static readonly DateTime _now = TestData.Now.UtcDateTime;
     private static readonly DateOnly _today = DateOnly.FromDateTime(_now);
 
+    /// <summary>Create draft: sets server controlled fields.</summary>
     [TestMethod]
     public void CreateDraft_SetsServerControlledFields()
     {
@@ -25,6 +27,7 @@ internal sealed class ExpenseDomainTests
         Assert.IsNull(expense.RejectionReason);
     }
 
+    /// <summary>Create draft: accepts boundary values.</summary>
     [TestMethod]
     public void CreateDraft_AcceptsBoundaryValues()
     {
@@ -35,30 +38,35 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual((decimal)int.MaxValue, highest.Amount);
     }
 
+    /// <summary>Create draft: rejects short description.</summary>
     [TestMethod]
     public void CreateDraft_RejectsShortDescription()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", "too short", 10m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects description that is only whitespace.</summary>
     [TestMethod]
     public void CreateDraft_RejectsDescriptionThatIsOnlyWhitespace()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", new string(' ', 20), 10m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects long description.</summary>
     [TestMethod]
     public void CreateDraft_RejectsLongDescription()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", new string('a', 501), 10m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects missing description.</summary>
     [TestMethod]
     public void CreateDraft_RejectsMissingDescription()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", null, 10m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects amount below minimum.</summary>
     [TestMethod]
     public void CreateDraft_RejectsAmountBelowMinimum()
     {
@@ -66,6 +74,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", "Valid description here", -5m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects amount above int32 max value.</summary>
     [TestMethod]
     public void CreateDraft_RejectsAmountAboveInt32MaxValue()
     {
@@ -74,18 +83,21 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", "Valid description here", tooMuch, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects more than two decimal places.</summary>
     [TestMethod]
     public void CreateDraft_RejectsMoreThanTwoDecimalPlaces()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", "Valid description here", 10.005m, _today, null, _now));
     }
 
+    /// <summary>Create draft: rejects future date.</summary>
     [TestMethod]
     public void CreateDraft_RejectsFutureDate()
     {
         Assert.ThrowsExactly<ValidationFailedException>(() => Expense.CreateDraft("owner-1", "Valid description here", 10m, _today.AddDays(1), null, _now));
     }
 
+    /// <summary>Create draft: accepts today and past dates.</summary>
     [TestMethod]
     public void CreateDraft_AcceptsTodayAndPastDates()
     {
@@ -96,6 +108,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(_today.AddYears(-1), past.ExpenseDate);
     }
 
+    /// <summary>Update draft: changes fields and describes the differences.</summary>
     [TestMethod]
     public void UpdateDraft_ChangesFieldsAndDescribesTheDifferences()
     {
@@ -115,6 +128,7 @@ internal sealed class ExpenseDomainTests
         Assert.IsFalse(changes.Contains("ExpenseDate", StringComparison.Ordinal));
     }
 
+    /// <summary>Update draft: reports when nothing changed.</summary>
     [TestMethod]
     public void UpdateDraft_ReportsWhenNothingChanged()
     {
@@ -125,6 +139,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual("No field changes.", changes);
     }
 
+    /// <summary>Update draft: keeps the owner and status.</summary>
     [TestMethod]
     public void UpdateDraft_KeepsTheOwnerAndStatus()
     {
@@ -136,6 +151,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(ExpenseStatus.Draft, expense.Status);
     }
 
+    /// <summary>Update draft: validates the new values.</summary>
     [TestMethod]
     public void UpdateDraft_ValidatesTheNewValues()
     {
@@ -147,6 +163,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual("Original description", expense.Description);
     }
 
+    /// <summary>Submit: moves draft to submitted.</summary>
     [TestMethod]
     public void Submit_MovesDraftToSubmitted()
     {
@@ -158,6 +175,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(_now.AddMinutes(1), expense.UpdatedAtUtc);
     }
 
+    /// <summary>Approve: moves submitted to approved.</summary>
     [TestMethod]
     public void Approve_MovesSubmittedToApproved()
     {
@@ -168,6 +186,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(ExpenseStatus.Approved, expense.Status);
     }
 
+    /// <summary>Reject: moves submitted to rejected and keeps the reason.</summary>
     [TestMethod]
     public void Reject_MovesSubmittedToRejectedAndKeepsTheReason()
     {
@@ -180,6 +199,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual("The receipt is missing", expense.RejectionReason);
     }
 
+    /// <summary>Reject: requires a valid reason and keeps the state.</summary>
     [TestMethod]
     public void Reject_RequiresAValidReasonAndKeepsTheState()
     {
@@ -192,6 +212,7 @@ internal sealed class ExpenseDomainTests
         Assert.IsNull(expense.RejectionReason);
     }
 
+    /// <summary>Pay: moves approved to paid and builds the payment record.</summary>
     [TestMethod]
     public void Pay_MovesApprovedToPaidAndBuildsThePaymentRecord()
     {
@@ -207,6 +228,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(_now.AddHours(1), payment.PaidAtUtc);
     }
 
+    /// <summary>Every transition increments the version.</summary>
     [TestMethod]
     public void EveryTransitionIncrementsTheVersion()
     {
@@ -226,6 +248,7 @@ internal sealed class ExpenseDomainTests
         Assert.AreEqual(version + 4, expense.Version);
     }
 
+    /// <summary>Submit: fails outside draft.</summary>
     [TestMethod]
     public void Submit_FailsOutsideDraft()
     {
@@ -237,6 +260,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ConflictException>(() => approved.Submit(_now));
     }
 
+    /// <summary>Update draft: fails outside draft.</summary>
     [TestMethod]
     public void UpdateDraft_FailsOutsideDraft()
     {
@@ -245,6 +269,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ConflictException>(() => expense.UpdateDraft("Updated description", 20m, _today, null, _now));
     }
 
+    /// <summary>Approve: fails outside submitted.</summary>
     [TestMethod]
     public void Approve_FailsOutsideSubmitted()
     {
@@ -259,6 +284,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ConflictException>(() => rejected.Approve(_now));
     }
 
+    /// <summary>Reject: fails outside submitted.</summary>
     [TestMethod]
     public void Reject_FailsOutsideSubmitted()
     {
@@ -270,6 +296,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ConflictException>(() => approved.Reject("The receipt is missing", _now));
     }
 
+    /// <summary>Pay: fails outside approved.</summary>
     [TestMethod]
     public void Pay_FailsOutsideApproved()
     {
@@ -287,6 +314,7 @@ internal sealed class ExpenseDomainTests
         Assert.ThrowsExactly<ConflictException>(() => paid.Pay("finance-1", _now));
     }
 
+    /// <summary>Rejected and paid are final states.</summary>
     [TestMethod]
     public void RejectedAndPaidAreFinalStates()
     {

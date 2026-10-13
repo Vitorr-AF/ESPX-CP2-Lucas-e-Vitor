@@ -6,15 +6,18 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for request validator behavior.</summary>
 [TestClass]
-internal sealed class RequestValidatorTests
+public sealed class RequestValidatorTests
 {
+    /// <summary>Validate: accepts a valid expense request.</summary>
     [TestMethod]
     public void Validate_AcceptsAValidExpenseRequest()
     {
         RequestValidator.Validate(TestData.Request());
     }
 
+    /// <summary>Validate: reports every invalid field with camel case keys.</summary>
     [TestMethod]
     public void Validate_ReportsEveryInvalidFieldWithCamelCaseKeys()
     {
@@ -27,6 +30,7 @@ internal sealed class RequestValidatorTests
         Assert.IsTrue(error.Errors.ContainsKey("expenseDate"));
     }
 
+    /// <summary>Validate: accepts the amount boundaries.</summary>
     [TestMethod]
     public void Validate_AcceptsTheAmountBoundaries()
     {
@@ -34,6 +38,7 @@ internal sealed class RequestValidatorTests
         RequestValidator.Validate(TestData.Request(amount: int.MaxValue));
     }
 
+    /// <summary>Validate: rejects amounts outside the boundaries.</summary>
     [TestMethod]
     public void Validate_RejectsAmountsOutsideTheBoundaries()
     {
@@ -41,6 +46,7 @@ internal sealed class RequestValidatorTests
         Assert.ThrowsExactly<ValidationFailedException>(() => RequestValidator.Validate(TestData.Request(amount: 2147483647.01m)));
     }
 
+    /// <summary>Validate: enforces the description limits.</summary>
     [TestMethod]
     public void Validate_EnforcesTheDescriptionLimits()
     {
@@ -51,6 +57,7 @@ internal sealed class RequestValidatorTests
         Assert.ThrowsExactly<ValidationFailedException>(() => RequestValidator.Validate(TestData.Request(description: new string('a', 501))));
     }
 
+    /// <summary>Validate: requires a reason for rejections.</summary>
     [TestMethod]
     public void Validate_RequiresAReasonForRejections()
     {
@@ -60,6 +67,7 @@ internal sealed class RequestValidatorTests
         Assert.ThrowsExactly<ValidationFailedException>(() => RequestValidator.Validate(TestData.Rejection("short")));
     }
 
+    /// <summary>Expense response: does not expose anything beyond the contract.</summary>
     [TestMethod]
     public void ExpenseResponse_DoesNotExposeAnythingBeyondTheContract()
     {

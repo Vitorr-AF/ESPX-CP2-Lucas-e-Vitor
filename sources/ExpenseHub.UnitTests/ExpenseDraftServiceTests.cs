@@ -8,11 +8,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for expense draft service behavior.</summary>
 [TestClass]
-internal sealed class ExpenseDraftServiceTests
+public sealed class ExpenseDraftServiceTests
 {
     private readonly ExpenseWorld _world = new();
 
+    /// <summary>Create: stores a draft owned by the authenticated user.</summary>
     [TestMethod]
     public async Task Create_StoresADraftOwnedByTheAuthenticatedUser()
     {
@@ -25,6 +27,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(created.Id, _world.Repository.Expenses[0].Id);
     }
 
+    /// <summary>Create: accepts an existing category.</summary>
     [TestMethod]
     public async Task Create_AcceptsAnExistingCategory()
     {
@@ -33,6 +36,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(2, created.CategoryId);
     }
 
+    /// <summary>Create: rejects an unknown category.</summary>
     [TestMethod]
     public async Task Create_RejectsAnUnknownCategory()
     {
@@ -42,6 +46,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.IsEmpty(_world.Repository.Expenses);
     }
 
+    /// <summary>Create: rejects invalid input before touching the repository.</summary>
     [TestMethod]
     public async Task Create_RejectsInvalidInputBeforeTouchingTheRepository()
     {
@@ -57,6 +62,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(0, _world.Repository.SaveCalls);
     }
 
+    /// <summary>Create: reports the invalid fields in camel case.</summary>
     [TestMethod]
     public async Task Create_ReportsTheInvalidFieldsInCamelCase()
     {
@@ -67,6 +73,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.IsTrue(error.Errors.ContainsKey("amount"));
     }
 
+    /// <summary>Create: records history in the same save as the expense.</summary>
     [TestMethod]
     public async Task Create_RecordsHistoryInTheSameSaveAsTheExpense()
     {
@@ -83,6 +90,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(TestData.Now.UtcDateTime, entry.OccurredAtUtc);
     }
 
+    /// <summary>Create: persists nothing when the save fails.</summary>
     [TestMethod]
     public async Task Create_PersistsNothingWhenTheSaveFails()
     {
@@ -95,6 +103,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.IsEmpty(_world.Repository.History);
     }
 
+    /// <summary>Update: changes the own draft and records the changes.</summary>
     [TestMethod]
     public async Task Update_ChangesTheOwnDraftAndRecordsTheChanges()
     {
@@ -122,6 +131,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.IsTrue(entry.Changes!.Contains("Description", StringComparison.Ordinal));
     }
 
+    /// <summary>Update: is not found for another employees draft.</summary>
     [TestMethod]
     public async Task Update_IsNotFoundForAnotherEmployeesDraft()
     {
@@ -133,6 +143,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(150.75m, _world.Repository.Expenses[0].Amount);
     }
 
+    /// <summary>Update: is forbidden for visible expenses of someone else.</summary>
     [TestMethod]
     public async Task Update_IsForbiddenForVisibleExpensesOfSomeoneElse()
     {
@@ -143,6 +154,7 @@ internal sealed class ExpenseDraftServiceTests
             () => _world.Service.UpdateAsync(employeeAndApprover, submitted.Id, TestData.Request(amount: 1m), CancellationToken.None));
     }
 
+    /// <summary>Update: is conflict once the expense left draft.</summary>
     [TestMethod]
     public async Task Update_IsConflictOnceTheExpenseLeftDraft()
     {
@@ -155,6 +167,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(150.75m, _world.Repository.Expenses[0].Amount);
     }
 
+    /// <summary>Update: is not found when the expense does not exist.</summary>
     [TestMethod]
     public async Task Update_IsNotFoundWhenTheExpenseDoesNotExist()
     {
@@ -162,6 +175,7 @@ internal sealed class ExpenseDraftServiceTests
             () => _world.Service.UpdateAsync(TestData.Employee(), Guid.NewGuid(), TestData.Request(), CancellationToken.None));
     }
 
+    /// <summary>Update: rejects invalid input and keeps the draft.</summary>
     [TestMethod]
     public async Task Update_RejectsInvalidInputAndKeepsTheDraft()
     {
@@ -175,6 +189,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.HasCount(1, _world.Repository.History);
     }
 
+    /// <summary>Submit: moves the own draft to submitted and records history.</summary>
     [TestMethod]
     public async Task Submit_MovesTheOwnDraftToSubmittedAndRecordsHistory()
     {
@@ -191,6 +206,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual("emp-1", entry.ActorId);
     }
 
+    /// <summary>Submit: is not found for another employees draft.</summary>
     [TestMethod]
     public async Task Submit_IsNotFoundForAnotherEmployeesDraft()
     {
@@ -202,6 +218,7 @@ internal sealed class ExpenseDraftServiceTests
         Assert.AreEqual(ExpenseStatus.Draft, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Submit: twice: is conflict and does not duplicate history.</summary>
     [TestMethod]
     public async Task Submit_Twice_IsConflictAndDoesNotDuplicateHistory()
     {

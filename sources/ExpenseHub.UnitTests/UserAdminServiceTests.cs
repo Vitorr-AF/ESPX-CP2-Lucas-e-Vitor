@@ -9,14 +9,16 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for user admin service behavior.</summary>
 [TestClass]
-internal sealed class UserAdminServiceTests
+public sealed class UserAdminServiceTests
 {
     private const string ValidCredential = "Abcd1234";
 
     private readonly FakeIdentityGateway _identity = new();
     private readonly UserAdminService _admin;
 
+    /// <summary>Initializes a new instance of the <see cref="UserAdminServiceTests"/> class.</summary>
     public UserAdminServiceTests()
     {
         _admin = new UserAdminService(_identity);
@@ -24,6 +26,7 @@ internal sealed class UserAdminServiceTests
         _identity.AddUser("user-1", "ana@example.com", ValidCredential);
     }
 
+    /// <summary>List users: returns every user to an admin.</summary>
     [TestMethod]
     public async Task ListUsers_ReturnsEveryUserToAnAdmin()
     {
@@ -32,6 +35,7 @@ internal sealed class UserAdminServiceTests
         Assert.HasCount(2, users);
     }
 
+    /// <summary>List users: is forbidden for every other role.</summary>
     [TestMethod]
     public async Task ListUsers_IsForbiddenForEveryOtherRole()
     {
@@ -41,6 +45,7 @@ internal sealed class UserAdminServiceTests
         }
     }
 
+    /// <summary>Update roles: assigns known roles.</summary>
     [TestMethod]
     public async Task UpdateRoles_AssignsKnownRoles()
     {
@@ -52,6 +57,7 @@ internal sealed class UserAdminServiceTests
         CollectionAssert.AreEquivalent(new[] { AppRoles.Employee, AppRoles.Approver }, _identity.RolesOf("user-1").ToArray());
     }
 
+    /// <summary>Update roles: removes roles that are no longer listed.</summary>
     [TestMethod]
     public async Task UpdateRoles_RemovesRolesThatAreNoLongerListed()
     {
@@ -62,6 +68,7 @@ internal sealed class UserAdminServiceTests
         CollectionAssert.AreEqual(new[] { AppRoles.Employee }, _identity.RolesOf("user-2").ToArray());
     }
 
+    /// <summary>Update roles: normalizes case and ignores duplicates.</summary>
     [TestMethod]
     public async Task UpdateRoles_NormalizesCaseAndIgnoresDuplicates()
     {
@@ -72,6 +79,7 @@ internal sealed class UserAdminServiceTests
         CollectionAssert.AreEquivalent(new[] { AppRoles.Employee, AppRoles.Auditor }, updated.Roles.ToArray());
     }
 
+    /// <summary>Update roles: allows clearing all roles.</summary>
     [TestMethod]
     public async Task UpdateRoles_AllowsClearingAllRoles()
     {
@@ -82,6 +90,7 @@ internal sealed class UserAdminServiceTests
         Assert.IsEmpty(updated.Roles);
     }
 
+    /// <summary>Update roles: rejects unknown roles without changing anything.</summary>
     [TestMethod]
     public async Task UpdateRoles_RejectsUnknownRolesWithoutChangingAnything()
     {
@@ -94,6 +103,7 @@ internal sealed class UserAdminServiceTests
         Assert.IsEmpty(_identity.RolesOf("user-1"));
     }
 
+    /// <summary>Update roles: requires the roles field.</summary>
     [TestMethod]
     public async Task UpdateRoles_RequiresTheRolesField()
     {
@@ -101,6 +111,7 @@ internal sealed class UserAdminServiceTests
             () => _admin.UpdateRolesAsync(TestData.Admin("admin-1"), "user-1", new UpdateRolesRequest { Roles = null }, CancellationToken.None));
     }
 
+    /// <summary>Update roles: does not let an admin remove their own admin role.</summary>
     [TestMethod]
     public async Task UpdateRoles_DoesNotLetAnAdminRemoveTheirOwnAdminRole()
     {
@@ -112,6 +123,7 @@ internal sealed class UserAdminServiceTests
         CollectionAssert.AreEqual(new[] { AppRoles.Admin }, _identity.RolesOf("admin-1").ToArray());
     }
 
+    /// <summary>Update roles: lets an admin keep their own admin role while changing others.</summary>
     [TestMethod]
     public async Task UpdateRoles_LetsAnAdminKeepTheirOwnAdminRoleWhileChangingOthers()
     {
@@ -122,6 +134,7 @@ internal sealed class UserAdminServiceTests
         CollectionAssert.AreEquivalent(new[] { AppRoles.Admin, AppRoles.Employee }, updated.Roles.ToArray());
     }
 
+    /// <summary>Update roles: allows removing the admin role from another admin.</summary>
     [TestMethod]
     public async Task UpdateRoles_AllowsRemovingTheAdminRoleFromAnotherAdmin()
     {
@@ -132,6 +145,7 @@ internal sealed class UserAdminServiceTests
         Assert.IsEmpty(updated.Roles);
     }
 
+    /// <summary>Update roles: is not found for unknown users.</summary>
     [TestMethod]
     public async Task UpdateRoles_IsNotFoundForUnknownUsers()
     {
@@ -139,6 +153,7 @@ internal sealed class UserAdminServiceTests
             () => _admin.UpdateRolesAsync(TestData.Admin("admin-1"), "ghost", new UpdateRolesRequest { Roles = [AppRoles.Employee] }, CancellationToken.None));
     }
 
+    /// <summary>Update roles: is forbidden for every other role.</summary>
     [TestMethod]
     public async Task UpdateRoles_IsForbiddenForEveryOtherRole()
     {

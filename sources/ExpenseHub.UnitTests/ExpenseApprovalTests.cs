@@ -8,11 +8,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace ExpenseHub.UnitTests;
 
+/// <summary>Tests for expense approval behavior.</summary>
 [TestClass]
-internal sealed class ExpenseApprovalTests
+public sealed class ExpenseApprovalTests
 {
     private readonly ExpenseWorld _world = new();
 
+    /// <summary>Approve: moves submitted to approved and records the approver.</summary>
     [TestMethod]
     public async Task Approve_MovesSubmittedToApprovedAndRecordsTheApprover()
     {
@@ -29,6 +31,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual(TestData.Now.UtcDateTime, entry.OccurredAtUtc);
     }
 
+    /// <summary>Approve: is forbidden for the owner.</summary>
     [TestMethod]
     public async Task Approve_IsForbiddenForTheOwner()
     {
@@ -41,6 +44,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual(ExpenseStatus.Submitted, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Approve: twice: is conflict and does not duplicate history.</summary>
     [TestMethod]
     public async Task Approve_Twice_IsConflictAndDoesNotDuplicateHistory()
     {
@@ -54,6 +58,7 @@ internal sealed class ExpenseApprovalTests
         Assert.HasCount(historyCount, _world.Repository.History);
     }
 
+    /// <summary>Approve: is conflict for rejected and paid expenses.</summary>
     [TestMethod]
     public async Task Approve_IsConflictForRejectedAndPaidExpenses()
     {
@@ -65,6 +70,7 @@ internal sealed class ExpenseApprovalTests
         await Assert.ThrowsExactlyAsync<ConflictException>(() => _world.Service.ApproveAsync(approver, paid.Id, CancellationToken.None));
     }
 
+    /// <summary>Approve: does not reveal drafts of other users.</summary>
     [TestMethod]
     public async Task Approve_DoesNotRevealDraftsOfOtherUsers()
     {
@@ -73,12 +79,14 @@ internal sealed class ExpenseApprovalTests
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.ApproveAsync(TestData.Approver(), draft.Id, CancellationToken.None));
     }
 
+    /// <summary>Approve: is not found for unknown expenses.</summary>
     [TestMethod]
     public async Task Approve_IsNotFoundForUnknownExpenses()
     {
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.ApproveAsync(TestData.Approver(), Guid.NewGuid(), CancellationToken.None));
     }
 
+    /// <summary>Reject: moves submitted to rejected and persists the reason.</summary>
     [TestMethod]
     public async Task Reject_MovesSubmittedToRejectedAndPersistsTheReason()
     {
@@ -99,6 +107,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual("app-1", entry.ActorId);
     }
 
+    /// <summary>Reject: requires a reason within the limits.</summary>
     [TestMethod]
     public async Task Reject_RequiresAReasonWithinTheLimits()
     {
@@ -114,6 +123,7 @@ internal sealed class ExpenseApprovalTests
         Assert.HasCount(2, _world.Repository.History);
     }
 
+    /// <summary>Reject: is forbidden for the owner.</summary>
     [TestMethod]
     public async Task Reject_IsForbiddenForTheOwner()
     {
@@ -126,6 +136,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual(ExpenseStatus.Submitted, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Reject: twice: is conflict and does not duplicate history.</summary>
     [TestMethod]
     public async Task Reject_Twice_IsConflictAndDoesNotDuplicateHistory()
     {
@@ -138,6 +149,7 @@ internal sealed class ExpenseApprovalTests
         Assert.HasCount(historyCount, _world.Repository.History);
     }
 
+    /// <summary>Reject: is conflict for approved expenses.</summary>
     [TestMethod]
     public async Task Reject_IsConflictForApprovedExpenses()
     {
@@ -147,6 +159,7 @@ internal sealed class ExpenseApprovalTests
         await Assert.ThrowsExactlyAsync<ConflictException>(() => _world.Service.RejectAsync(approver, approved.Id, TestData.Rejection(), CancellationToken.None));
     }
 
+    /// <summary>Pay: moves approved to paid and creates the payment record.</summary>
     [TestMethod]
     public async Task Pay_MovesApprovedToPaidAndCreatesThePaymentRecord()
     {
@@ -168,6 +181,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual(ExpenseStatus.Paid, entry.NewStatus);
     }
 
+    /// <summary>Pay: is forbidden for the owner.</summary>
     [TestMethod]
     public async Task Pay_IsForbiddenForTheOwner()
     {
@@ -180,6 +194,7 @@ internal sealed class ExpenseApprovalTests
         Assert.AreEqual(ExpenseStatus.Approved, _world.Repository.Expenses[0].Status);
     }
 
+    /// <summary>Pay: is conflict for submitted and rejected expenses.</summary>
     [TestMethod]
     public async Task Pay_IsConflictForSubmittedAndRejectedExpenses()
     {
@@ -193,6 +208,7 @@ internal sealed class ExpenseApprovalTests
         Assert.IsEmpty(_world.Repository.Payments);
     }
 
+    /// <summary>Pay: twice: is conflict and does not duplicate payment or history.</summary>
     [TestMethod]
     public async Task Pay_Twice_IsConflictAndDoesNotDuplicatePaymentOrHistory()
     {
@@ -206,6 +222,7 @@ internal sealed class ExpenseApprovalTests
         Assert.HasCount(historyCount, _world.Repository.History);
     }
 
+    /// <summary>Pay: does not reveal drafts of other users.</summary>
     [TestMethod]
     public async Task Pay_DoesNotRevealDraftsOfOtherUsers()
     {
@@ -214,6 +231,7 @@ internal sealed class ExpenseApprovalTests
         await Assert.ThrowsExactlyAsync<NotFoundException>(() => _world.Service.PayAsync(TestData.Finance(), draft.Id, CancellationToken.None));
     }
 
+    /// <summary>Transition: persists state and history in a single save.</summary>
     [TestMethod]
     public async Task Transition_PersistsStateAndHistoryInASingleSave()
     {
@@ -228,6 +246,7 @@ internal sealed class ExpenseApprovalTests
         Assert.HasCount(1, _world.Repository.Payments);
     }
 
+    /// <summary>Transition: with a failing save does not add history or payment.</summary>
     [TestMethod]
     public async Task Transition_WithAFailingSaveDoesNotAddHistoryOrPayment()
     {
