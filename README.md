@@ -145,7 +145,7 @@ Requisições de exemplo para todos os endpoints estão em `sources/ExpenseHub.A
 
 ### Autenticação
 
-`POST /login` devolve um token bearer (`access_token`). Envie `Authorization: Bearer <token>`. O token carrega as roles do momento do login, então **após alterar roles o usuário deve autenticar novamente**.
+`POST /login` devolve um token bearer (`accessToken`). Envie `Authorization: Bearer <token>`. O token carrega as roles do momento do login, então **após alterar roles o usuário deve autenticar novamente**.
 
 ### Fluxo de ponta a ponta
 
